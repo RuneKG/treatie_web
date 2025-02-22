@@ -1,23 +1,23 @@
 import { removeEdgesAndNodes } from '@bigcommerce/catalyst-client';
-import { getFormatter, getTranslations } from 'next-intl/server';
+import { ShoppingCart } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
+import { Suspense } from 'react';
 
-import { CarouselProduct } from '@/vibes/soul/primitives/products-carousel';
-import { FeaturedProductsCarousel } from '@/vibes/soul/sections/featured-products-carousel';
-import { NotFound as NotFoundSection } from '@/vibes/soul/sections/not-found';
 import { client } from '~/client';
 import { graphql } from '~/client/graphql';
 import { revalidate } from '~/client/revalidate-target';
-import { Footer } from '~/components/footer';
-import { Header } from '~/components/header';
+import { Footer } from '~/components/footer/footer';
+import { Header, HeaderSkeleton } from '~/components/header';
+import { CartLink } from '~/components/header/cart';
 import { ProductCardFragment } from '~/components/product-card/fragment';
-import { productCardTransformer } from '~/data-transformers/product-card-transformer';
-import { getPreferredCurrencyCode } from '~/lib/currency';
+import { ProductCardCarousel } from '~/components/product-card-carousel';
+import { SearchForm } from '~/components/search-form';
 
 const NotFoundQuery = graphql(
   `
-    query NotFoundQuery($currencyCode: currencyCode) {
+    query NotFoundQuery {
       site {
-        featuredProducts(first: 10) {
+        featuredProducts(first: 4) {
           edges {
             node {
               ...ProductCardFragment
@@ -30,32 +30,48 @@ const NotFoundQuery = graphql(
   [ProductCardFragment],
 );
 
-async function getFeaturedProducts(): Promise<CarouselProduct[]> {
-  const format = await getFormatter();
-  const currencyCode = await getPreferredCurrencyCode();
+export default async function NotFound() {
+  const t = await getTranslations('NotFound');
+  const ct = await getTranslations('Components.Header.MiniCart');
+
   const { data } = await client.fetch({
     document: NotFoundQuery,
-    variables: { currencyCode },
     fetchOptions: { next: { revalidate } },
   });
 
   const featuredProducts = removeEdgesAndNodes(data.site.featuredProducts);
 
-  return productCardTransformer(featuredProducts, format);
-}
-
-export default async function NotFound() {
-  const t = await getTranslations('NotFound');
-
   return (
     <>
-      <Header />
+      <Suspense fallback={<HeaderSkeleton />}>
+        <Header
+          cart={
+            <CartLink>
+              <ShoppingCart aria-label={ct('cart')} />
+            </CartLink>
+          }
+        />
+      </Suspense>
 
-      <NotFoundSection subtitle={t('message')} title={t('heading')} />
+      <main className="mx-auto mb-10 max-w-[835px] space-y-8 px-4 sm:px-10 lg:px-0">
+        <div className="flex flex-col gap-8 px-0 py-16">
+          <h2 className="text-4xl font-black lg:text-5xl">{t('heading')}</h2>
+          <p className="text-lg">{t('message')}</p>
+        </div>
+        <SearchForm />
+        <ProductCardCarousel
+          products={featuredProducts}
+          showCart={false}
+          showCompare={false}
+          title={t('Carousel.featuredProducts')}
+        />
+      </main>
 
-      <FeaturedProductsCarousel products={getFeaturedProducts()} />
-
-      <Footer />
+      <Suspense>
+        <Footer />
+      </Suspense>
     </>
   );
 }
+
+export const runtime = 'edge';

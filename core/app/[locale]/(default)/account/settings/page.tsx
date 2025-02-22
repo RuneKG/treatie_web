@@ -1,14 +1,12 @@
-import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { AccountSettingsSection } from '@/vibes/soul/sections/account-settings-section';
+import { TabHeading } from '../_components/tab-heading';
 
-import { changePassword } from './_actions/change-password';
-import { updateCustomer } from './_actions/update-customer';
+import { UpdateSettingsForm } from './_components/update-settings-form';
 import { getCustomerSettingsQuery } from './page-data';
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata() {
   const t = await getTranslations('Account.Settings');
 
   return {
@@ -17,17 +15,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Settings() {
-  const customerSettings = await getCustomerSettingsQuery();
+  const customerSettings = await getCustomerSettingsQuery({
+    address: { filters: { entityIds: [4, 5, 6, 7] } },
+  });
 
   if (!customerSettings) {
     notFound();
   }
 
   return (
-    <AccountSettingsSection
-      account={customerSettings.customerInfo}
-      changePasswordAction={changePassword}
-      updateAccountAction={updateCustomer}
-    />
+    <div className="mx-auto lg:w-2/3">
+      <TabHeading heading="settings" />
+      <UpdateSettingsForm {...customerSettings} />
+    </div>
   );
 }
+
+export const runtime = 'edge';

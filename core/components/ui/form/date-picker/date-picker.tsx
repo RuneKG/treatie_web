@@ -1,5 +1,5 @@
 import * as PopoverPrimitive from '@radix-ui/react-popover';
-import { CalendarIcon, ChevronLeftIcon } from 'lucide-react';
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import {
   ComponentPropsWithoutRef,
   ComponentPropsWithRef,
@@ -7,7 +7,7 @@ import {
   forwardRef,
   useState,
 } from 'react';
-import { DayPicker, DayPickerProps, PropsSingle } from 'react-day-picker';
+import { DayPicker, DayPickerSingleProps } from 'react-day-picker';
 
 import { Input } from '../input';
 
@@ -34,7 +34,8 @@ const Calendar = ({ ...props }: ComponentPropsWithoutRef<typeof DayPicker>) => {
         day_disabled: 'text-gray-400 aria-selected:bg-gray-100 aria-selected:text-white',
       }}
       components={{
-        Chevron: () => <ChevronLeftIcon className="h-6 w-6" />,
+        IconLeft: () => <ChevronLeftIcon className="h-6 w-6" />,
+        IconRight: () => <ChevronRightIcon className="h-6 w-6" />,
       }}
       {...props}
     />
@@ -46,9 +47,9 @@ Calendar.displayName = 'Calendar';
 interface Props extends Omit<ComponentPropsWithRef<'input'>, 'defaultValue' | 'onSelect'> {
   defaultValue?: string | Date;
   error?: boolean;
-  selected?: PropsSingle['selected'];
-  onSelect?: PropsSingle['onSelect'];
-  disabledDays?: DayPickerProps['disabled'];
+  selected?: DayPickerSingleProps['selected'];
+  onSelect?: DayPickerSingleProps['onSelect'];
+  disabledDays?: DayPickerSingleProps['disabled'];
 }
 
 const DatePicker = forwardRef<ComponentRef<'input'>, Props>(
@@ -95,6 +96,7 @@ const DatePicker = forwardRef<ComponentRef<'input'>, Props>(
           >
             <Calendar
               disabled={disabledDays}
+              initialFocus
               mode="single"
               onSelect={onSelect || setDate}
               required={required}

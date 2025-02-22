@@ -3,13 +3,10 @@ import { cache } from 'react';
 
 import { getSessionCustomerAccessToken } from '~/auth';
 import { client } from '~/client';
+import { FormFieldValuesFragment } from '~/client/fragments/form-fields-values';
 import { PaginationFragment } from '~/client/fragments/pagination';
 import { graphql } from '~/client/graphql';
 import { TAGS } from '~/client/tags';
-import {
-  FormFieldsFragment,
-  FormFieldValuesFragment,
-} from '~/data-transformers/form-field-transformer/fragment';
 
 const GetCustomerAddressesQuery = graphql(
   `
@@ -43,24 +40,9 @@ const GetCustomerAddressesQuery = graphql(
           }
         }
       }
-      site {
-        settings {
-          formFields {
-            shippingAddress {
-              ...FormFieldsFragment
-            }
-          }
-        }
-      }
-      geography {
-        countries {
-          code
-          name
-        }
-      }
     }
   `,
-  [PaginationFragment, FormFieldValuesFragment, FormFieldsFragment],
+  [PaginationFragment, FormFieldValuesFragment],
 );
 
 interface Pagination {
@@ -91,8 +73,6 @@ export const getCustomerAddresses = cache(
       pageInfo: addresses.pageInfo,
       totalAddresses: addresses.collectionInfo?.totalItems ?? 0,
       addresses: removeEdgesAndNodes({ edges: addresses.edges }),
-      shippingAddressFields: response.data.site.settings?.formFields.shippingAddress,
-      countries: response.data.geography.countries,
     };
   },
 );

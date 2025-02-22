@@ -7,7 +7,9 @@ import { PaginationFragment } from '~/client/fragments/pagination';
 import { graphql, VariablesOf } from '~/client/graphql';
 import { TAGS } from '~/client/tags';
 
-import { OrderItemFragment } from './fragment';
+import { OrderShipmentFragment } from '../order/[slug]/page-data';
+
+import { OrderItemFragment } from './_components/product-snippet';
 
 const CustomerAllOrders = graphql(
   `
@@ -48,6 +50,13 @@ const CustomerAllOrders = graphql(
                           }
                         }
                       }
+                      shipments {
+                        edges {
+                          node {
+                            ...OrderShipmentFragment
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -58,7 +67,7 @@ const CustomerAllOrders = graphql(
       }
     }
   `,
-  [OrderItemFragment, PaginationFragment],
+  [OrderItemFragment, OrderShipmentFragment, PaginationFragment],
 );
 
 type OrdersFiltersInput = VariablesOf<typeof CustomerAllOrders>['filters'];
@@ -79,7 +88,7 @@ export const getCustomerOrders = cache(
     after = '',
     filterByStatus,
     filterByDateRange,
-    limit = 5,
+    limit = 2,
   }: CustomerOrdersArgs) => {
     const customerAccessToken = await getSessionCustomerAccessToken();
     const paginationArgs = before ? { last: limit, before } : { first: limit, after };
@@ -108,13 +117,7 @@ export const getCustomerOrders = cache(
           ...order,
           consignments: {
             shipping:
-              order.consignments?.shipping &&
-              removeEdgesAndNodes(order.consignments.shipping).map((consignment) => {
-                return {
-                  ...consignment,
-                  lineItems: removeEdgesAndNodes(consignment.lineItems),
-                };
-              }),
+              order.consignments?.shipping && removeEdgesAndNodes(order.consignments.shipping),
           },
         };
       }),

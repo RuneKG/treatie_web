@@ -26,7 +26,7 @@ export const FooterFragment = graphql(`
       }
     }
     content {
-      pages(filters: { parentEntityIds: [0] }) {
+      pages(filters: { isVisibleInNavigation: true }) {
         edges {
           node {
             __typename

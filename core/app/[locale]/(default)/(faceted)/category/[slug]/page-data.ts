@@ -4,14 +4,15 @@ import { getSessionCustomerAccessToken } from '~/auth';
 import { client } from '~/client';
 import { graphql, VariablesOf } from '~/client/graphql';
 import { revalidate } from '~/client/revalidate-target';
-import { BreadcrumbsCategoryFragment } from '~/components/breadcrumbs/fragment';
+import { BreadcrumbsFragment } from '~/components/breadcrumbs/fragment';
+
+import { CategoryTreeFragment } from './_components/sub-categories';
 
 const CategoryPageQuery = graphql(
   `
     query CategoryPageQuery($categoryId: Int!) {
       site {
         category(entityId: $categoryId) {
-          entityId
           name
           ...BreadcrumbsFragment
           seo {
@@ -20,25 +21,11 @@ const CategoryPageQuery = graphql(
             metaKeywords
           }
         }
-        categoryTree(rootEntityId: $categoryId) {
-          entityId
-          name
-          path
-          children {
-            entityId
-            name
-            path
-            children {
-              entityId
-              name
-              path
-            }
-          }
-        }
+        ...CategoryTreeFragment
       }
     }
   `,
-  [BreadcrumbsCategoryFragment],
+  [BreadcrumbsFragment, CategoryTreeFragment],
 );
 
 type Variables = VariablesOf<typeof CategoryPageQuery>;

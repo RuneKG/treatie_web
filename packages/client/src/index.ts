@@ -1,4 +1,3 @@
-export { BigCommerceAPIError } from './api-error';
-export { BigCommerceGQLError } from './gql-error';
 export { createClient } from './client';
+export { BigCommerceAPIError } from './error';
 export { removeEdgesAndNodes } from './utils/removeEdgesAndNodes';

@@ -1,10 +1,13 @@
+import { removeEdgesAndNodes } from '@bigcommerce/catalyst-client';
 import { cache } from 'react';
 
 import { getSessionCustomerAccessToken } from '~/auth';
 import { client } from '~/client';
+import { FormFieldValuesFragment } from '~/client/fragments/form-fields-values';
+import { PaginationFragment } from '~/client/fragments/pagination';
 import { graphql, VariablesOf } from '~/client/graphql';
 import { TAGS } from '~/client/tags';
-import { FormFieldsFragment } from '~/data-transformers/form-field-transformer/fragment';
+import { FormFieldsFragment } from '~/components/form-fields/fragment';
 
 const CustomerSettingsQuery = graphql(
   `
@@ -16,10 +19,41 @@ const CustomerSettingsQuery = graphql(
     ) {
       customer {
         entityId
+        company
         email
         firstName
         lastName
-        company
+        phone
+        formFields {
+          entityId
+          name
+          __typename
+          ... on CheckboxesFormFieldValue {
+            valueEntityIds
+            values
+          }
+          ... on DateFormFieldValue {
+            date {
+              utc
+            }
+          }
+          ... on MultipleChoiceFormFieldValue {
+            valueEntityId
+            value
+          }
+          ... on NumberFormFieldValue {
+            number
+          }
+          ... on PasswordFormFieldValue {
+            password
+          }
+          ... on TextFormFieldValue {
+            text
+          }
+          ... on MultilineTextFormFieldValue {
+            multilineText
+          }
+        }
       }
       site {
         settings {
@@ -63,7 +97,7 @@ export const getCustomerSettingsQuery = cache(async ({ address, customer }: Prop
       customerFilters: customer?.filters,
       customerSortBy: customer?.sortBy,
     },
-    fetchOptions: { cache: 'no-store', next: { tags: [TAGS.customer] } },
+    fetchOptions: { cache: 'no-store' },
     customerAccessToken,
   });
 
@@ -81,3 +115,72 @@ export const getCustomerSettingsQuery = cache(async ({ address, customer }: Prop
     customerInfo,
   };
 });
+
+const GetCustomerAddressesQuery = graphql(
+  `
+    query GetCustomerAddresses($after: String, $before: String, $first: Int, $last: Int) {
+      customer {
+        entityId
+        addresses(before: $before, after: $after, first: $first, last: $last) {
+          pageInfo {
+            ...PaginationFragment
+          }
+          collectionInfo {
+            totalItems
+          }
+          edges {
+            node {
+              entityId
+              firstName
+              lastName
+              address1
+              address2
+              city
+              stateOrProvince
+              countryCode
+              phone
+              postalCode
+              company
+              formFields {
+                ...FormFieldValuesFragment
+              }
+            }
+          }
+        }
+      }
+    }
+  `,
+  [PaginationFragment, FormFieldValuesFragment],
+);
+
+export interface CustomerAddressesArgs {
+  after?: string;
+  before?: string;
+  limit?: number;
+}
+
+export const getCustomerAddresses = cache(
+  async ({ before = '', after = '', limit = 9 }: CustomerAddressesArgs) => {
+    const customerAccessToken = await getSessionCustomerAccessToken();
+    const paginationArgs = before ? { last: limit, before } : { first: limit, after };
+
+    const response = await client.fetch({
+      document: GetCustomerAddressesQuery,
+      variables: { ...paginationArgs },
+      customerAccessToken,
+      fetchOptions: { cache: 'no-store', next: { tags: [TAGS.customer] } },
+    });
+
+    const addresses = response.data.customer?.addresses;
+
+    if (!addresses) {
+      return undefined;
+    }
+
+    return {
+      pageInfo: addresses.pageInfo,
+      addressesCount: addresses.collectionInfo?.totalItems ?? 0,
+      addresses: removeEdgesAndNodes({ edges: addresses.edges }),
+    };
+  },
+);

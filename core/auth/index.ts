@@ -1,4 +1,5 @@
 import { decodeJwt } from 'jose';
+import { cookies } from 'next/headers';
 import NextAuth, { type DefaultSession, type NextAuthConfig, User } from 'next-auth';
 import 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -6,10 +7,9 @@ import { z } from 'zod';
 
 import { client } from '~/client';
 import { graphql } from '~/client/graphql';
-import { getCartId } from '~/lib/cart';
 
 const LoginMutation = graphql(`
-  mutation LoginMutation($email: String!, $password: String!, $cartEntityId: String) {
+  mutation Login($email: String!, $password: String!, $cartEntityId: String) {
     login(email: $email, password: $password, guestCartEntityId: $cartEntityId) {
       customerAccessToken {
         value
@@ -25,7 +25,7 @@ const LoginMutation = graphql(`
 `);
 
 const LoginWithTokenMutation = graphql(`
-  mutation LoginWithCustomerLoginJwtMutation($jwt: String!, $cartEntityId: String) {
+  mutation LoginWithCustomerLoginJwt($jwt: String!, $cartEntityId: String) {
     loginWithCustomerLoginJwt(jwt: $jwt, guestCartEntityId: $cartEntityId) {
       customerAccessToken {
         value
@@ -124,7 +124,8 @@ async function loginWithJwt(jwt: string, cartEntityId?: string): Promise<User | 
 
 async function authorize(credentials: unknown): Promise<User | null> {
   const parsed = Credentials.parse(credentials);
-  const cartEntityId = await getCartId();
+  const cookieStore = await cookies();
+  const cartEntityId = cookieStore.get('cartId')?.value;
 
   switch (parsed.type) {
     case 'password': {
@@ -203,12 +204,7 @@ const config = {
   ],
 } satisfies NextAuthConfig;
 
-const { handlers, auth, signIn: nextAuthSignIn, signOut } = NextAuth(config);
-
-const signIn = (
-  credentials: z.infer<typeof Credentials>,
-  options: { redirect?: boolean | undefined; redirectTo?: string },
-) => nextAuthSignIn('credentials', { ...credentials, ...options });
+const { handlers, auth, signIn, signOut } = NextAuth(config);
 
 const getSessionCustomerAccessToken = async () => {
   try {

@@ -1,77 +1,37 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { removeEdgesAndNodes } from '@bigcommerce/catalyst-client';
-import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
-import { cache } from 'react';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { FeaturedProductsCarousel } from '@/vibes/soul/sections/featured-products-carousel';
-import { FeaturedProductsList } from '@/vibes/soul/sections/featured-products-list';
 import { getSessionCustomerAccessToken } from '~/auth';
 import { client } from '~/client';
 import { graphql } from '~/client/graphql';
 import { revalidate } from '~/client/revalidate-target';
-import { FeaturedProductsCarouselFragment } from '~/components/featured-products-carousel/fragment';
-import { FeaturedProductsListFragment } from '~/components/featured-products-list/fragment';
-import { Subscribe } from '~/components/subscribe';
-import { productCardTransformer } from '~/data-transformers/product-card-transformer';
-import FrontpageBlocklist from '~/ec-core/components/frontpage-block-list/frontpageBlocklist';
-import { getPreferredCurrencyCode } from '~/lib/currency';
-
-import { Slideshow } from './_components/slideshow';
+import { ProductCardCarousel } from '~/components/product-card-carousel';
+import { ProductCardCarouselFragment } from '~/components/product-card-carousel/fragment';
+import { Slideshow } from '~/components/slideshow';
 
 const HomePageQuery = graphql(
   `
-    query HomePageQuery($currencyCode: currencyCode) {
+    query HomePageQuery {
       site {
-        featuredProducts(first: 12) {
-          edges {
-            node {
-              ...FeaturedProductsListFragment
-            }
-          }
-        }
         newestProducts(first: 12) {
           edges {
             node {
-              ...FeaturedProductsCarouselFragment
+              ...ProductCardCarouselFragment
+            }
+          }
+        }
+        featuredProducts(first: 12) {
+          edges {
+            node {
+              ...ProductCardCarouselFragment
             }
           }
         }
       }
     }
   `,
-  [FeaturedProductsCarouselFragment, FeaturedProductsListFragment],
+  [ProductCardCarouselFragment],
 );
-
-const getPageData = cache(async () => {
-  const customerAccessToken = await getSessionCustomerAccessToken();
-  const currencyCode = await getPreferredCurrencyCode();
-  const { data } = await client.fetch({
-    document: HomePageQuery,
-    customerAccessToken,
-    variables: { currencyCode },
-    fetchOptions: customerAccessToken ? { cache: 'no-store' } : { next: { revalidate } },
-  });
-
-  return data;
-});
-
-const getFeaturedProducts = async () => {
-  const data = await getPageData();
-  const format = await getFormatter();
-
-  const featuredProducts = removeEdgesAndNodes(data.site.featuredProducts);
-
-  return productCardTransformer(featuredProducts, format);
-};
-
-const getNewestProducts = async () => {
-  const data = await getPageData();
-  const format = await getFormatter();
-
-  const newestProducts = removeEdgesAndNodes(data.site.newestProducts);
-
-  return productCardTransformer(newestProducts, format);
-};
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -82,5 +42,38 @@ export default async function Home({ params }: Props) {
 
   setRequestLocale(locale);
 
-  return <FrontpageBlocklist locale={locale} />;
+  const t = await getTranslations('Home');
+  const customerAccessToken = await getSessionCustomerAccessToken();
+
+  const { data } = await client.fetch({
+    document: HomePageQuery,
+    customerAccessToken,
+    fetchOptions: customerAccessToken ? { cache: 'no-store' } : { next: { revalidate } },
+  });
+
+  const featuredProducts = removeEdgesAndNodes(data.site.featuredProducts);
+  const newestProducts = removeEdgesAndNodes(data.site.newestProducts);
+
+  return (
+    <>
+      <Slideshow />
+
+      <div className="my-10">
+        <ProductCardCarousel
+          products={featuredProducts}
+          showCart={false}
+          showCompare={false}
+          title={t('Carousel.featuredProducts')}
+        />
+        <ProductCardCarousel
+          products={newestProducts}
+          showCart={false}
+          showCompare={false}
+          title={t('Carousel.newestProducts')}
+        />
+      </div>
+    </>
+  );
 }
+
+export const runtime = 'edge';
