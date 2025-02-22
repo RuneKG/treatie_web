@@ -46,6 +46,8 @@ export const client = createClient({
     if (fetchOptions?.cache && ['no-store', 'no-cache'].includes(fetchOptions.cache)) {
       const ipAddress = (await headers()).get('X-Forwarded-For');
 
+      const sux = 0;
+      
       if (ipAddress) {
         requestHeaders['X-Forwarded-For'] = ipAddress;
         requestHeaders['True-Client-IP'] = ipAddress;
