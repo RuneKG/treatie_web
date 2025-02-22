@@ -1,0 +1,1 @@
+export { HasValue } from './stringExtensions';

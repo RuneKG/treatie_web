@@ -1,9 +1,11 @@
+import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
-import { PropsWithChildren, Suspense } from 'react';
+import { PropsWithChildren } from 'react';
 
-import { Footer } from '~/components/footer/footer';
-import { Header, HeaderSkeleton } from '~/components/header';
-import { Cart } from '~/components/header/cart';
+import { ECFooter } from '~/ec-core/components/footer/ecFooter';
+import { ECHeader } from '~/ec-core/components/header/header-wrapper';
+import { ContentType, ContentTypes, ItemsToResponseModel } from '~/ec-core/umbraco';
+import { ContentResource, OpenAPI, SiteContentResponseModel } from '~/ec-core/umbracoClient';
 
 interface Props extends PropsWithChildren {
   params: Promise<{ locale: string }>;
@@ -14,19 +16,32 @@ export default async function DefaultLayout({ params, children }: Props) {
 
   setRequestLocale(locale);
 
+  OpenAPI.BASE = process.env.UMBRACO_URL ?? 'http://localhost:22468';
+
+  const content = await ContentResource.getContent20({
+    acceptLanguage: locale,
+    filter: [`${ContentType}:${ContentTypes.site}`],
+  });
+
+  const items = ItemsToResponseModel<SiteContentResponseModel[]>(ContentTypes.site, content.items);
+
+  if (!items) {
+    return notFound();
+  }
+
+  const siteContent = items[0];
+
+  if (!siteContent) {
+    return notFound();
+  }
+
   return (
     <>
-      <Suspense fallback={<HeaderSkeleton />}>
-        <Header cart={<Cart />} />
-      </Suspense>
-
-      <main className="flex-1 px-4 2xl:container sm:px-10 lg:px-12 2xl:mx-auto 2xl:px-0">
-        {children}
-      </main>
-
-      <Suspense>
-        <Footer />
-      </Suspense>
+      <ECHeader {...siteContent} />
+      <main>{children}</main>
+      <ECFooter {...siteContent} />
     </>
   );
 }
+
+export const experimental_ppr = true;

@@ -1,3 +1,4 @@
 packages:
+  - ec-core
   - core
   - packages/*

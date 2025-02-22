@@ -27,6 +27,7 @@ export default async (): Promise<NextConfig> => {
     reactStrictMode: true,
     experimental: {
       optimizePackageImports: ['@icons-pack/react-simple-icons'],
+      ppr: 'incremental',
     },
     typescript: {
       ignoreBuildErrors: !!process.env.CI,
@@ -34,6 +35,17 @@ export default async (): Promise<NextConfig> => {
     eslint: {
       ignoreDuringBuilds: !!process.env.CI,
       dirs: ['app', 'client', 'components', 'lib', 'middlewares'],
+    },
+    images: {
+      remotePatterns: [
+        {
+          hostname: 'cdn11.bigcommerce.com',
+        },
+        {
+          protocol: 'http',
+          hostname: 'localhost',
+        },
+      ],
     },
     // default URL generation in BigCommerce uses trailing slash
     trailingSlash: process.env.TRAILING_SLASH !== 'false',
@@ -49,7 +61,7 @@ export default async (): Promise<NextConfig> => {
             },
             {
               key: 'Link',
-              value: `<https://${process.env.BIGCOMMERCE_CDN_HOSTNAME ?? 'cdn11.bigcommerce.com'}>; rel=preconnect`,
+              value: `<https://${process.env.NEXT_PUBLIC_BIGCOMMERCE_CDN_HOSTNAME ?? 'cdn11.bigcommerce.com'}>; rel=preconnect`,
             },
           ],
         },
